@@ -6,10 +6,14 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.bumptech.glide.Glide;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +45,7 @@ public class PhotoGalleryFragment extends Fragment {
 
         mRecyclerView = (RecyclerView) v.findViewById(R.id.fragment_photo_gallery_recycler_view);
         StaggeredGridLayoutManager manger = new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL);
+//        GridLayoutManager manger=new GridLayoutManager(getActivity(),2);
         mRecyclerView.setLayoutManager(manger);
         setupAdapter();
         return v;
@@ -56,17 +61,21 @@ public class PhotoGalleryFragment extends Fragment {
     }
 
     private class PhotoHolder extends RecyclerView.ViewHolder {
-        private TextView mTitleTextView;
+        private TextView mDateTextView;
+        private ImageView mImageView;
 
         public PhotoHolder(View itemView) {
             super(itemView);
 
-            mTitleTextView = (TextView) itemView;
+            mDateTextView= (TextView) itemView.findViewById(R.id.fragment_photo_gallery_date_view);
+            mImageView= (ImageView) itemView.findViewById(R.id.fragment_photo_gallery_image_view);
         }
 
         //绑定模型的数据到视图上
         public void bindGalleryItem(GalleryItem item) {
-            mTitleTextView.setText(item.toString());
+            Log.d("test", "bindGalleryItem: "+item.getMdate());
+            mDateTextView.setText(item.getMdate());
+            Glide.with(getActivity()).load(item.getmUrl()).into(mImageView);
         }
     }
 
@@ -79,8 +88,9 @@ public class PhotoGalleryFragment extends Fragment {
 
         @Override
         public PhotoHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            TextView textView = new TextView(getActivity());
-            return new PhotoHolder(textView);
+            //不用parent而使用null会导致cardview间距失效
+            View view=LayoutInflater.from(parent.getContext()).inflate(R.layout.gallery_item,parent,false);
+            return new PhotoHolder(view);
         }
 
         @Override
@@ -98,7 +108,6 @@ public class PhotoGalleryFragment extends Fragment {
 
     //创建一个后台进程用来获取url返回的数据，防止主线程ANR，主线程不允许网络连接行为
     private class FetchItemsTask extends AsyncTask<Void, Void, List<GalleryItem>> {
-            //save
 
         @Override
         protected List<GalleryItem> doInBackground(Void... params) {
