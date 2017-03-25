@@ -98,7 +98,7 @@ public class PhotoGalleryFragment extends Fragment {
 
     //创建一个后台进程用来获取url返回的数据，防止主线程ANR，主线程不允许网络连接行为
     private class FetchItemsTask extends AsyncTask<Void, Void, List<GalleryItem>> {
-
+            //save
 
         @Override
         protected List<GalleryItem> doInBackground(Void... params) {
