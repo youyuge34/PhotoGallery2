@@ -5,9 +5,13 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -22,6 +26,7 @@ import java.util.List;
  * Created by yousheng on 17/3/24.
  */
 public class PhotoGalleryFragment extends Fragment {
+    private static final String TAG = "PhotoGalleryFragment";
     private RecyclerView mRecyclerView;
     private List<GalleryItem> mList = new ArrayList<>();
 
@@ -35,7 +40,8 @@ public class PhotoGalleryFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         //开启新线程发送url，获取返回的数据
-        new FetchItemsTask().execute();
+        updateItems();
+        setHasOptionsMenu(true);
     }
 
     @Nullable
@@ -49,6 +55,67 @@ public class PhotoGalleryFragment extends Fragment {
         mRecyclerView.setLayoutManager(manger);
         setupAdapter();
         return v;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_search_menu,menu);
+
+        //响应用户的搜索框输入
+        MenuItem menuItem=menu.findItem(R.id.menu_item_search);
+        //用getactionview方法取出对象
+        final SearchView searchView= (SearchView) menuItem.getActionView();
+        //显示搜索框暗示
+        searchView.setQueryHint("Type in page number to search");
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            //用户确认搜索后调用
+            public boolean onQueryTextSubmit(String query) {
+                Log.d(TAG, "onQueryTextSubmit: "+query);
+                //将搜索值使用preference存储
+                QueryPreferences.setStoredQuery(getActivity(),query);
+//                updateItems();
+                //自动收起键盘
+//                searchView.clearFocus();
+                updateItems();
+                return true;
+            }
+
+            @Override
+            //只要文本框里的文字有变化，回调方法就会执行
+            public boolean onQueryTextChange(String newText) {
+                Log.d(TAG, "onQueryTextChange: "+newText);
+                return false;
+            }
+        });
+
+        //让搜索框默认显示已保存的查询信息
+        searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String query=QueryPreferences.getSroredQuery(getActivity());
+                searchView.setQuery(query,false);
+            }
+        });
+    }
+
+    //若是点了clear,则清除存储的搜索信息并刷新（实机测试不行，不知原因，界面不刷新）
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.menu_item_clear:
+                QueryPreferences.setStoredQuery(getActivity(),null);
+                updateItems();
+                return true;
+
+        }
+        return false;
+    }
+
+    private void updateItems() {
+        String query=QueryPreferences.getSroredQuery(getActivity());
+        new FetchItemsTask(query).execute();
     }
 
     private void setupAdapter() {
@@ -108,11 +175,21 @@ public class PhotoGalleryFragment extends Fragment {
 
     //创建一个后台进程用来获取url返回的数据，防止主线程ANR，主线程不允许网络连接行为
     private class FetchItemsTask extends AsyncTask<Void, Void, List<GalleryItem>> {
+            private String mQuery;
+
+        public FetchItemsTask(String mQuery) {
+            this.mQuery = mQuery;
+        }
 
         @Override
         protected List<GalleryItem> doInBackground(Void... params) {
 
-            return new FlickrFecthr().fetchItems();
+            if(mQuery==null){
+                return new FlickrFecthr().fetchRecentPhotos();
+            }else {
+                return new FlickrFecthr().searchPhotos(mQuery);
+            }
+
         }
 
         //此方法在doInBackground方法完成后执行，且在主线程中执行，可以更新UI，参数为后台线程返回的参数

@@ -19,6 +19,7 @@ import java.util.List;
 //网络连接专用类
 public class FlickrFecthr {
     private static final String TAG = "FlickrFecthr";
+    private static  final String ENDPOINT="http://gank.io/api/data/%E7%A6%8F%E5%88%A9/10/";
 
     //从指定url获取原始数据并返回一个字节流数组
     public byte[] getUrlBytes(String urlSpec) throws IOException {
@@ -63,11 +64,19 @@ public class FlickrFecthr {
         return new String(getUrlBytes(urlSpec));
     }
 
+    //若是显示最新页时
+    public List<GalleryItem> fetchRecentPhotos(){
+        return downloadGalleryItems(ENDPOINT+1);
+    }
+
+    //若是搜索页数时
+    public List<GalleryItem> searchPhotos(String query){
+        return downloadGalleryItems(ENDPOINT+query);
+    }
     //构建请求url,返回item模型的list
-    public List<GalleryItem> fetchItems(){
+    public List<GalleryItem> downloadGalleryItems(String url){
         List<GalleryItem> list=new ArrayList<>();
         try {
-            String url="http://gank.io/api/data/%E7%A6%8F%E5%88%A9/10/1";
             String jsonString=getUrlString(url);
             //使用构造函数，把json数据解析成Java对象，生成对象树
             JSONObject jsonBody=new JSONObject(jsonString);
@@ -80,6 +89,7 @@ public class FlickrFecthr {
         }
         return list;
     }
+
 
     //将json对象解析成模型层GalleryItem的对象
     private void parseItem(List<GalleryItem> items,JSONObject jsonBody) throws IOException,JSONException{
